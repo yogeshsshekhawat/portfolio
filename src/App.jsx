@@ -81,30 +81,36 @@ export default function App() {
     const path = pathRef.current;
     if (!path) return;
 
-    // Get the length of the dynamic weaving line
-    const pathLength = path.getTotalLength();
+    const mm = gsap.matchMedia();
 
-    // Set initial dash attributes to hide the path
-    gsap.set(path, {
-      strokeDasharray: pathLength,
-      strokeDashoffset: pathLength
-    });
+    // Only run the SVG weaving path animation on desktop viewports (>= 768px)
+    mm.add("(min-width: 768px)", () => {
+      const pathLength = path.getTotalLength();
 
-    // Link the drawing of the line to scroll progress
-    const anim = gsap.to(path, {
-      strokeDashoffset: 0,
-      ease: 'none',
-      scrollTrigger: {
-        trigger: mainRef.current,
-        start: 'top top',
-        end: 'bottom bottom',
-        scrub: 1.2
-      }
+      gsap.set(path, {
+        strokeDasharray: pathLength,
+        strokeDashoffset: pathLength
+      });
+
+      const anim = gsap.to(path, {
+        strokeDashoffset: 0,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: mainRef.current,
+          start: 'top top',
+          end: 'bottom bottom',
+          scrub: 1.2
+        }
+      });
+
+      return () => {
+        anim.scrollTrigger?.kill();
+        anim.kill();
+      };
     });
 
     return () => {
-      anim.scrollTrigger?.kill();
-      anim.kill();
+      mm.revert();
     };
   }, []);
 
@@ -126,7 +132,7 @@ export default function App() {
       <main ref={mainRef} className="relative z-10 w-full">
         {/* Scroll-Linked SVG Weaving Line */}
         <svg
-          className="absolute top-0 left-0 w-full h-full pointer-events-none z-0"
+          className="absolute top-0 left-0 w-full h-full pointer-events-none z-0 hidden md:block"
           preserveAspectRatio="none"
           viewBox="0 0 100 1000"
         >

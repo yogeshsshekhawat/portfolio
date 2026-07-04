@@ -109,8 +109,46 @@ export default function Technologies() {
     });
 
     // Prevent dragging from intercepting standard page scrolling
-    mouseConstraint.mouse.element.removeEventListener("mousewheel", mouseConstraint.mouse.mousewheel);
-    mouseConstraint.mouse.element.removeEventListener("DOMMouseScroll", mouseConstraint.mouse.mousewheel);
+    const mouseElement = mouseConstraint.mouse.element;
+    mouseElement.removeEventListener("mousewheel", mouseConstraint.mouse.mousewheel);
+    mouseElement.removeEventListener("DOMMouseScroll", mouseConstraint.mouse.mousewheel);
+    mouseElement.removeEventListener("wheel", mouseConstraint.mouse.mousewheel);
+
+    // Remove Matter.js default touch event listeners to allow page scrolling
+    mouseElement.removeEventListener('touchstart', mouseConstraint.mouse.mousedown);
+    mouseElement.removeEventListener('touchmove', mouseConstraint.mouse.mousemove);
+    mouseElement.removeEventListener('touchend', mouseConstraint.mouse.mouseup);
+
+    let isDraggingBadge = false;
+
+    const handleTouchStart = (event) => {
+      const target = event.target;
+      const isBadge = target.closest('.tech-badge');
+      if (isBadge) {
+        isDraggingBadge = true;
+        mouseConstraint.mouse.mousedown(event);
+      }
+    };
+
+    const handleTouchMove = (event) => {
+      if (isDraggingBadge) {
+        if (event.cancelable) {
+          event.preventDefault();
+        }
+        mouseConstraint.mouse.mousemove(event);
+      }
+    };
+
+    const handleTouchEnd = (event) => {
+      if (isDraggingBadge) {
+        mouseConstraint.mouse.mouseup(event);
+        isDraggingBadge = false;
+      }
+    };
+
+    mouseElement.addEventListener('touchstart', handleTouchStart, { passive: false });
+    mouseElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+    mouseElement.addEventListener('touchend', handleTouchEnd, { passive: false });
 
     World.add(world, mouseConstraint);
 
@@ -162,6 +200,11 @@ export default function Technologies() {
     // Garbage collection
     return () => {
       window.removeEventListener('resize', handleResize);
+      
+      mouseElement.removeEventListener('touchstart', handleTouchStart);
+      mouseElement.removeEventListener('touchmove', handleTouchMove);
+      mouseElement.removeEventListener('touchend', handleTouchEnd);
+      
       Runner.stop(runner);
       World.clear(world);
       Engine.clear(engine);
